@@ -19,7 +19,7 @@ const ListUsers = () => {
         return;
       }     
       try {
-      const response = await fetch("https://miniature-space-broccoli-r4v45vj4555rcwxqg-3001.app.github.dev/api/users",
+      const response = await fetch("https://bug-free-goggles-5gpg7pwgjqwrf4vpq-3001.app.github.dev/api/users",
         {
           headers: {
             "Content-Type": "application/json",
@@ -84,8 +84,8 @@ const ListUsers = () => {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.id}</td>
+                  <tr key={user.user_id}>
+                    <td>{user.user_id}</td>
                     <td>{user.email}</td>
                     <td>{user.name}</td>
                   </tr>

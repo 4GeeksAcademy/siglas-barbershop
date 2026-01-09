@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const Logout = () => {
+  const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
 
   useEffect(() => {
-    localStorage.removeItem("access_token");
+    localStorage.removeItem("access_token")
+    dispatch({ type: "logout" })
     navigate("/login");
   }, [navigate]);
 

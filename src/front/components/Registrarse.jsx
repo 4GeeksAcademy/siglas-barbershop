@@ -1,187 +1,226 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+
 const Registrarse = () => {
-  const navigate = useNavigate()
+  const { store, dispatch } = useGlobalReducer();
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
+    address: "",
     password: "",
     confirmPassword: "",
-    is_active : true,
   });
 
   const [loading, setLoading] = useState(false);
-
-  const [alert, setAlert] = useState({
-    show: false,
-    type: "",
-    message: "",
-  });
+  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
 
   const showAlert = (type, message) => {
     setAlert({ show: true, type, message });
-
-    setTimeout(() => {
-      setAlert({ show: false, type: "", message: "" });
-    }, 5000);
+    setTimeout(() => setAlert({ show: false, type: "", message: "" }), 3000);
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setAlert({ show: false, type: "", message: "" });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+
+    if (
+      formData.name.trim().length < 2 ||
+      !formData.email.trim() ||
+      formData.phone.trim().length < 7 ||
+      formData.address.trim().length < 4
+    ) {
+      return showAlert("danger", "Completa los campos obligatorios correctamente.");
+    }
+
+    if (formData.password.length < 6) {
+      return showAlert("danger", "La contraseña debe tener al menos 6 caracteres.");
+    }
+
     if (formData.password !== formData.confirmPassword) {
-      showAlert("danger", "Las contraseñas no coinciden");
-      return;
+      return showAlert("danger", "Las contraseñas no coinciden.");
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://miniature-space-broccoli-r4v45vj4555rcwxqg-3001.app.github.dev/api/user",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            is_active : true,
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log(data)
-       if (!data.ok) {
-        showAlert("danger", data?.message || "Error al registrar usuario");
-        setLoading(false);
-        return;
-      }
- 
-      showAlert("success", "Usuario registrado correctamente");
-
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        is_active : "True",
+      const res = await fetch(`${store.backendUrl}/api/usuario/cliente`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          address: formData.address.trim(),
+          password: formData.password,
+        }),
       });
-      navigate("/login")
 
-    } catch (error) {
-      showAlert("danger", "Error de red. Intenta nuevamente.");
+      const data = await res.json()
+
+      if (!data.ok) {
+        return showAlert("danger", data?.message || "Error al registrar usuario.");
+      }
+
+      showAlert("success", "Cuenta creada correctamente. Redirigiendo…");
+      setTimeout(() => navigate("/login", { replace: true }), 900);
+    } catch {
+      dispatch({
+        type: "set_error",
+        payload: "Error de conexión con el servidor",
+      });
+      //showAlert("danger", "Error de conexión con el servidor.");
     } finally {
-      setLoading(false);
+      dispatch({ type: "set_loading", payload: false });
+      //setLoading(false);
     }
   };
 
   return (
-    <div className="container-fluid min-vh-100 d-flex justify-content-center align-items-center px-3">
-      <div className="card shadow w-100" style={{ maxWidth: "420px" }}>
+    <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+      <div className="row w-100 justify-content-center">
+        <div className="col-12 col-md-9 col-lg-7 col-xl-6">
 
-        {alert.show && (
           <div
-            className={`alert alert-${alert.type} alert-dismissible fade show mb-0 rounded-top`}
-            role="alert"
+            className="card border-0 shadow-lg"
+            style={{
+              background: "rgba(255,255,255,0.93)",
+              backdropFilter: "blur(6px)",
+            }}
           >
-            {alert.message}
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() => setAlert({ ...alert, show: false })}
-            ></button>
-          </div>
-        )}
+            <div className="card-header bg-white border-0 text-center py-4">
 
-        <div className="card-body p-4">
-          <h3 className="text-center mb-4">Registro</h3>
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label">Nombre</label>
-              <input
-                type="text"
-                className="form-control"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
+              <h4 className="fw-bold mb-1">Registro de Cliente</h4>
+              <p className="text-muted mb-0 small">
+                Crea tu cuenta para gestionar citas y servicios
+              </p>
             </div>
 
-            <div className="mb-3">
-              <label className="form-label">Email</label>
-              <input
-                type="email"
-                className="form-control"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
+            {alert.show && (
+              <div className={`alert alert-${alert.type} rounded-0 mb-0`}>
+                {alert.message}
+              </div>
+            )}
 
-            <div className="mb-3">
-              <label className="form-label">Contraseña</label>
-              <input
-                type="password"
-                className="form-control"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
+            <div className="card-body px-4 px-md-5 py-4">
+              <form onSubmit={handleSubmit} className="row g-3" noValidate>
 
-            <div className="mb-3">
-              <label className="form-label">Confirmar Contraseña</label>
-              <input
-                type="password"
-                className="form-control"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
+                <div className="col-12">
+                  <label className="form-label">Nombre</label>
+                  <input
+                    className="form-control"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary w-100 d-flex justify-content-center align-items-center"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
+                <div className="col-12">
+                  <label className="form-label">Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Teléfono</label>
+                  <input
+                    className="form-control"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label">Dirección</label>
+                  <input
+                    className="form-control"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                <hr className="my-3" />
+
+                <div className="col-md-6">
+                  <label className="form-label">Contraseña</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label">Confirmar</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="col-12 d-grid mt-4">
+                  <button className="btn btn-dark" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Registrando…
+                      </>
+                    ) : (
+                      "Crear cuenta"
+                    )}
+                  </button>
+                </div>
+
+                <div className="col-12 text-center small text-muted">
+                  ¿Ya tienes cuenta?{" "}
                   <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                  ></span>
-                  Registrando...
-                </>
-              ) : (
-                "Registrarse"
-              )}
-            </button>
-          </form>
+                    role="button"
+                    className="text-decoration-underline"
+                    onClick={() => navigate("/login")}
+                  >
+                    Inicia sesión
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            <div className="text-center mt-3">
+              <button className="btn btn-link text-muted" onClick={() => navigate("/")}>
+                ← Volver al inicio
+              </button>
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>
   );
 };
-
 export default Registrarse;

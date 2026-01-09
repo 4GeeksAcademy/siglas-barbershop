@@ -12,7 +12,7 @@ from api.admin import setup_admin
 from api.commands import setup_commands
 
 # importaciones nuevas
-from flask_bcrypt import Bcrypt # para encriptar y comparar
+from flask_bcrypt import Bcrypt  # para encriptar y comparar
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 
 # from models import Person
@@ -24,19 +24,34 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 # Nuevas configuraciones
-app.config["JWT_SECRET_KEY"] = "valor_variable" # clave secreta para firmar los tokens, cuanto mas largo mejor
-jwt = JWTManager(app) # instanciamos jwt de JWTManager utilizando app para tenet las herramientas de encriptacion
-bcrypt = Bcrypt(app) # para encriptar el password
- 
+# clave secreta para firmar los tokens, cuanto mas largo mejor
+app.config["JWT_SECRET_KEY"] = "valor_variable"
+# instanciamos jwt de JWTManager utilizando app para tenet las herramientas de encriptacion
+jwt = JWTManager(app)
+bcrypt = Bcrypt(app)  # para encriptar el password
+
 # database condiguration
+# db_url = os.getenv("DATABASE_URL")
+# if db_url is not None:
+#   app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
+#        "postgres://", "postgresql://")
+# else:
+#    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+
+
 db_url = os.getenv("DATABASE_URL")
-if db_url is not None:
+if db_url:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
         "postgres://", "postgresql://")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///barbershop.db"
+    #app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+    print(">>> USING DB:", app.config["SQLALCHEMY_DATABASE_URI"])
+
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+
 MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 
@@ -66,6 +81,8 @@ def sitemap():
     return send_from_directory(static_file_dir, 'index.html')
 
 # any other endpoint will try to serve it like a static file
+
+
 @app.route('/<path:path>', methods=['GET'])
 def serve_any_other_file(path):
     if not os.path.isfile(os.path.join(static_file_dir, path)):
@@ -74,7 +91,7 @@ def serve_any_other_file(path):
     response.cache_control.max_age = 0  # avoid cache memory
     return response
 
-
+###############################################################print(">>> DB URI:", app.config["SQLALCHEMY_DATABASE_URI"])
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))

@@ -13,6 +13,11 @@ import Registrarse from "./components/Registrarse";
 import Login from "./components/Login";
 import ListUsers from "./components/ListUsers";
 import Logout from "./components/Logout";
+import Dashboard from "./pages/Dashboard";
+import BookAppointment from "./pages/BookAppointment";
+import MyAppointments from "./pages/MyAppointments";
+import AdminCreateUser from "./pages/AdminCreatedUser";
+import MyPerfilCliente from "./pages/MyPerfilCliente";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -31,6 +36,12 @@ export const router = createBrowserRouter(
         <Route path= "/login" element={ <Login />}/>
         <Route path= "/logout" element={ <Logout />}/>
         <Route path= "/usuarios" element={ <ListUsers />}/>
+        <Route path= "/admin/usuarios" element={ < AdminCreateUser/>} />
+
+        <Route path= "/dashboard" element={ <Dashboard />} />
+        <Route path= "/bookappointment" element={ <BookAppointment />} />
+        <Route path= "/myappointments" element={ <MyAppointments /> } />
+        <Route path= "/me" element={ <MyPerfilCliente /> } />
         <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
         <Route path="/demo" element={<Demo />} />
       </Route>

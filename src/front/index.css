@@ -1,0 +1,19 @@
+/* Fondo global con patrón */
+.app-background1 {
+  min-height: 100vh;
+  background-image: url("/fondonuevo.jpg");
+  background-repeat: repeat; /* IMPORTANTE para patrones */
+  background-size: auto;
+}
+
+/* Overlay suave para legibilidad */
+.app-background::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  z-index: -1;
+}
+body{
+  background: gray;
+}
