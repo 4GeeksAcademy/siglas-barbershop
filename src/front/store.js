@@ -2,11 +2,11 @@ export const initialStore = () => {
   return {
     message: null,
     token: localStorage.getItem("access_token") || "",
-    //token: "",
-    user: JSON.parse(localStorage.getItem("user") || "null"), // puede ser null
-    role : JSON.parse(localStorage.getItem("role") || "null"),
-    services: [],
-    barbers: [],
+    user_id: "", // puede ser null
+    role: localStorage.getItem("role") || "null",
+    is_admin: localStorage.getItem("is_admin") || "null",
+    services: localStorage.getItem("barbers") || [],
+    barbers: localStorage.getItem("services") || [],
     myAppointments: [],
     loading: false,
     error: null,
@@ -35,13 +35,20 @@ export default function storeReducer(store, action = {}) {
       return { ...store, token: action.payload };
 
     case "set_user":
-      return { ...store, user: action.payload.user_id, role: action.payload.role };
+      return {
+        ...store,
+        user_id: action.payload.user_id,
+        role: action.payload.role,
+        is_admin: action.payload.is_admin,
+      };
 
     case "logout":
       return {
         ...store,
         token: "",
-        user: null,
+        role: "",
+        user_id: "",
+        is_admin: "",
         services: [],
         barbers: [],
         myAppointments: [],

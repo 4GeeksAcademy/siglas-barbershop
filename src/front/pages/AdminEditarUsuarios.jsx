@@ -1,19 +1,23 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
-const AdminCrearUsuario = () => {
+const AdminEditarUsuario = () => {
   const { store, dispatch } = useGlobalReducer();
+  const { id } = useParams();
   const navigate = useNavigate();
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [showOptional, setShowOptional] = useState(false);
   const [showSpecialties, setShowSpecialties] = useState(false);
 
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
 
   const [formData, setFormData] = useState({
+    user_id: null,
     role: "cliente",
     is_admin: false,
     name: "",
@@ -49,7 +53,6 @@ const AdminCrearUsuario = () => {
       role,
     }));
 
-    // si cambia a cliente, oculto specialties visualmente (no borro por si luego vuelve a barbero)
     if (role === "cliente") {
       setShowSpecialties(false);
     }
@@ -58,39 +61,88 @@ const AdminCrearUsuario = () => {
   const validate = () => {
     if (formData.name.trim().length < 2) return "Nombre inválido (mínimo 2).";
     if (!formData.email.trim()) return "Email obligatorio.";
-    if (formData.password.length < 6) return "Contraseña mínimo 6 caracteres.";
-    if (formData.password !== formData.confirmPassword) return "Las contraseñas no coinciden.";
 
-    // Si el usuario será barbero (por role o por checkbox visual), exigir specialties
+    // password opcional en editar: si escribe algo, validamos
+    if (formData.password) {
+      if (formData.password.length < 6) return "Contraseña mínimo 6 caracteres.";
+      if (formData.password !== formData.confirmPassword)
+        return "Las contraseñas no coinciden.";
+    }
+
     const willBeBarber = formData.role === "barbero" || showSpecialties;
-    if (willBeBarber && formData.specialties.trim().length < 2) {
+    if (willBeBarber && (formData.specialties || "").trim().length < 2) {
       return "Indica especialidades (ej: fade, barba).";
     }
     return null;
+  };
+
+  const loadUsuario = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/api/usuario/${id}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        showAlertMsg("danger", data?.message || "No se pudo cargar el usuario.");
+        setLoading(false);
+        return;
+      }
+
+      const u = data.result;
+
+      setFormData((prev) => ({
+        ...prev,
+        user_id: u.user_id,
+        name: u.name || "",
+        email: u.email || "",
+        role: u.role || "cliente",
+        is_admin: !!u.is_admin,
+        phone: u.phone || "",
+        address: u.address || "",
+        photo_url: u.photo_url || "",
+        bio: u.bio || "",
+        specialties: u.specialties || "",
+        password: "",
+        confirmPassword: "",
+      }));
+
+      // lógica visual (igual que crear)
+      const isBarber = (u.role || "cliente") === "barbero";
+      setShowSpecialties(isBarber); // si es barbero, muestro specialties
+      setShowOptional(!!(u.photo_url || u.bio)); // si tiene algo, abro opcional
+
+    } catch {
+      showAlertMsg("danger", "Error de conexión con el servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
     if (err) return showAlertMsg("danger", err);
-    setLoading(true);
+
+    setSaving(true);
     try {
       const willBeBarber = formData.role === "barbero" || showSpecialties;
+
       const payload = {
         name: formData.name.trim(),
         email: formData.email.trim(),
-        password: formData.password,
         role: formData.role,
         is_admin: formData.is_admin,
-        phone: formData.phone || "",
-        address: formData.address || "",
-        photo_url: formData.photo_url || "",
-        bio: formData.bio || "",
-        specialties: formData.specialties || "",
+        phone: formData.phone.trim() || "",
+        address: formData.address.trim() || "",
+        photo_url: formData.photo_url.trim() || "",
+        bio: formData.bio.trim() || "",
+        specialties: formData.specialties.trim() || "",
       };
+      console.log("payload", payload)
+      // password solo si viene (editar)
+      if (formData.password) payload.password = formData.password;
 
-      const res = await fetch(`${backendUrl}/api/usuario/admin`, {
-        method: "POST",
+      const res = await fetch(`${backendUrl}/api/admin/usuario/${id}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${store.token}`
@@ -98,21 +150,56 @@ const AdminCrearUsuario = () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json()
-      //.catch(() => ({}));
+      const data = await res.json();
+      console.log("res.ok", res.ok)
       if (!data.ok) {
-        return showAlertMsg("danger", data?.missing_fiends || "Error al crear usuario.");
+        return showAlertMsg("danger", data?.message || "Error al actualizar usuario.");
       }
-      showAlertMsg("success", "Usuario creado correctamente.");
+
+      showAlertMsg("success", "Usuario actualizado correctamente.");
       setTimeout(() => navigate("/adminusuarios", { replace: true }), 900);
-    } catch (e) {
+    } catch {
       showAlertMsg("danger", "Error de conexión con el servidor.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  const handleDelete = async () => {
+    const ok = confirm("¿Seguro que deseas eliminar este usuario?");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${backendUrl}/api/usuario/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!data.ok) {
+        return showAlertMsg("danger", data?.message || "No se pudo eliminar.");
+      }
+
+      showAlertMsg("success", "Usuario eliminado.");
+      setTimeout(() => navigate("/adminusuarios", { replace: true }), 700);
+    } catch {
+      showAlertMsg("danger", "Error de conexión con el servidor.");
+    }
+  };
+
+  useEffect(() => {
+    loadUsuario();
+  }, [id]);
+
   const willShowSpecialties = formData.role === "barbero" || showSpecialties;
+
+  if (loading) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border" role="status" />
+        <div className="mt-2 text-muted">Cargando usuario...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
@@ -126,9 +213,9 @@ const AdminCrearUsuario = () => {
           }}
         >
           <div className="card-header bg-white text-center py-4 border-0">
-            <h4 className="fw-bold mb-1">Admin · Crear Usuario</h4>
+            <h4 className="fw-bold mb-1">Admin · Editar Usuario</h4>
             <p className="text-muted small mb-0">
-              Compatible con: role, is_admin, specialties, photo_url, bio
+              ID: <b>{formData.user_id}</b>
             </p>
           </div>
 
@@ -147,7 +234,7 @@ const AdminCrearUsuario = () => {
                   name="role"
                   value={formData.role}
                   onChange={handleRoleChange}
-                  disabled={loading}
+                  disabled={saving}
                 >
                   <option value="cliente">Cliente</option>
                   <option value="barbero">Barbero</option>
@@ -163,13 +250,12 @@ const AdminCrearUsuario = () => {
                     name="is_admin"
                     checked={!!formData.is_admin}
                     onChange={handleChange}
-                    disabled={loading}
+                    disabled={saving}
                   />
                   <label className="form-check-label" htmlFor="isAdmin">
                     Es administrador (is_admin = true)
                   </label>
                 </div>
-
               </div>
 
               {formData.is_admin && formData.role !== "barbero" && (
@@ -181,7 +267,7 @@ const AdminCrearUsuario = () => {
                       id="adminAlsoBarber"
                       checked={showSpecialties}
                       onChange={(e) => setShowSpecialties(e.target.checked)}
-                      disabled={loading}
+                      disabled={saving}
                     />
                     <label className="form-check-label" htmlFor="adminAlsoBarber">
                       También es barbero (mostrar especialidades)
@@ -197,7 +283,7 @@ const AdminCrearUsuario = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
 
@@ -209,7 +295,7 @@ const AdminCrearUsuario = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
 
@@ -220,7 +306,7 @@ const AdminCrearUsuario = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
 
@@ -231,7 +317,7 @@ const AdminCrearUsuario = () => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
 
@@ -243,26 +329,23 @@ const AdminCrearUsuario = () => {
                     name="specialties"
                     value={formData.specialties}
                     onChange={handleChange}
-                    disabled={loading}
+                    disabled={saving}
                     placeholder="Fade, barba, diseño..."
                   />
-                  <div className="form-text">
-                    Se guarda en <b>specialties</b> (tu modelo lo permite).
-                  </div>
                 </div>
               )}
 
               <div className="col-md-6">
-                <label className="form-label">Contraseña</label>
+                <label className="form-label">Nueva contraseña (opcional)</label>
                 <input
                   type="password"
                   className="form-control"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
-                <div className="form-text">Mínimo 6 caracteres.</div>
+                <div className="form-text">Déjala vacía si no deseas cambiarla.</div>
               </div>
 
               <div className="col-md-6">
@@ -273,7 +356,7 @@ const AdminCrearUsuario = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  disabled={loading}
+                  disabled={saving}
                 />
               </div>
 
@@ -282,7 +365,7 @@ const AdminCrearUsuario = () => {
                   type="button"
                   className="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
                   onClick={() => setShowOptional((v) => !v)}
-                  disabled={loading}
+                  disabled={saving}
                 >
                   Perfil opcional (foto / bio)
                   <span className="small">{showOptional ? "▲" : "▼"}</span>
@@ -297,7 +380,7 @@ const AdminCrearUsuario = () => {
                         name="photo_url"
                         value={formData.photo_url}
                         onChange={handleChange}
-                        disabled={loading}
+                        disabled={saving}
                         placeholder="https://..."
                       />
                     </div>
@@ -310,7 +393,7 @@ const AdminCrearUsuario = () => {
                         rows="3"
                         value={formData.bio}
                         onChange={handleChange}
-                        disabled={loading}
+                        disabled={saving}
                         placeholder="Descripción opcional..."
                       />
                     </div>
@@ -319,8 +402,19 @@ const AdminCrearUsuario = () => {
               </div>
 
               <div className="col-12 d-grid mt-3">
-                <button className="btn btn-dark" disabled={loading}>
-                  {loading ? "Creando..." : "Crear usuario"}
+                <button className="btn btn-dark" disabled={saving}>
+                  {saving ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
+
+              <div className="col-12 d-grid">
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={handleDelete}
+                  disabled={saving}
+                >
+                  Eliminar usuario
                 </button>
               </div>
 
@@ -328,7 +422,7 @@ const AdminCrearUsuario = () => {
                 <button
                   type="button"
                   className="btn btn-link text-muted"
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate("/adminusuarios")}
                 >
                   ← Volver
                 </button>
@@ -341,4 +435,4 @@ const AdminCrearUsuario = () => {
   );
 };
 
-export default AdminCrearUsuario;
+export default AdminEditarUsuario;

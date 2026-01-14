@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 export default function MyAppointments() {
   const { store, dispatch } = useGlobalReducer();
-  //const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [busyId, setBusyId] = useState(null);
   const [msg, setMsg] = useState("");
@@ -21,7 +20,6 @@ export default function MyAppointments() {
 
   useEffect(() => {
     loadMyAppointments();
-    // eslint-disable-next-line
   }, []);
 
   const badgeClass = (status) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { getUserFromToken } from "../../utils/auth";
@@ -23,8 +23,12 @@ const Login = () => {
         payload: "Ya estás logueado, redirigiendo...",
       });
       const timer = setTimeout(() => {
-        navigate("/dashboard", { replace: true });
-      }, 1500); 
+        if (store.is_admin) {
+          navigate("/admindashboard", { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
+      }, 900);
       return () => clearTimeout(timer);
     }
   }, [store.token, navigate, dispatch]);
@@ -43,7 +47,8 @@ const Login = () => {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json()
+      //.catch(() => ({}));
       if (!res.ok || !data?.access_token) {
         dispatch({
           type: "set_error",
@@ -57,9 +62,16 @@ const Login = () => {
       }
       localStorage.setItem("access_token", data.access_token);
       dispatch({ type: "set_token", payload: data.access_token });
-      const { user_id, role } = getUserFromToken(data.access_token);
-      dispatch({ type: "set_user", payload: { user_id, role } });
-      navigate("/dashboard", { replace: true });
+      const { user_id, role, is_admin } = getUserFromToken(data.access_token);
+      dispatch({ type: "set_user", payload: { user_id, role, is_admin } });
+      localStorage.setItem("role", role);
+      localStorage.setItem("user_id", user_id)
+      localStorage.setItem("is_admin", is_admin)
+      if (is_admin) {
+        navigate("/admindashboard", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       dispatch({
         type: "set_error",
@@ -127,6 +139,15 @@ const Login = () => {
                     "Entrar"
                   )}
                 </button>
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    className="btn btn-link text-muted"
+                    onClick={() => navigate(-1)}
+                  >
+                    ← Volver
+                  </button>
+                </div>
               </form>
             </div>
           </div>

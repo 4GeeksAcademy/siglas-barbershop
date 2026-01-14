@@ -39,13 +39,17 @@ def require_roles(*allowed_roles):
             if not user:
                 return jsonify({"ok": False, "message": "Usuario no autenticado"}), 401
 
-            if user.role not in allowed_roles:
+            if not user.is_admin:
+            #if user.role not in allowed_roles:
                 return jsonify({
                     "ok": False,
                     "message": "No autorizado",
                     "required_roles": allowed_roles
                 }), 403
-
             return fn(*args, **kwargs)
         return wrapper
     return decorator
+
+
+
+

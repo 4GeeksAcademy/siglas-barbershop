@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
@@ -6,18 +6,18 @@ export default function Dashboard() {
   const { store, dispatch } = useGlobalReducer();
   const navigate = useNavigate();
 
-  const token = store.token || localStorage.getItem("access_token");
-  const role = store.role || JSON.parse(localStorage.getItem("role") || "null");
-  //const backendUrl = store.backendUrl || import.meta.env.VITE_BACKEND_URL;
+  const token = store.token
+  const role = store.role
 
   const [loading, setLoading] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState("");
+  const [barbers, setBarbers] = useState([]);
+  const [services, setServices] = useState([]);
+  
+  
 
-  // ✅ Ajusta a tus rutas reales:
-  // Cliente: mis citas
   const urlMine = `${store.backendUrl}/api/appointments/mine`;
-  // Barbero: mis citas como barbero (si no la tienes aún, dime cuál es o la creamos)
   const urlBarberMine = `${store.backendUrl}/api/appointments/mine`;
 
   useEffect(() => {
@@ -27,17 +27,13 @@ export default function Dashboard() {
   const loadAppointments = async () => {
     setError("");
     setLoading(true);
-
     try {
       const url = role === "barbero" ? urlBarberMine : urlMine;
-
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
+      if (!data.ok) {
         setAppointments([]);
         setError(data.message || "No se pudieron cargar las citas.");
         return;
@@ -52,61 +48,166 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    if (token && role) loadAppointments();
-    // eslint-disable-next-line
-  }, [token, role]);
-
-  // --- Acciones (cliente) ---
-  const cancelAppointment = async (appointment_id) => {
-    // ✅ si tienes una ruta para cancelar, ponla aquí
-    // Ejemplo: PUT /api/appointments/<id>/cancel
-    const url = `${store.backendUrl}/api/appointments/${appointment_id}/cancel`;
-
+  const loadHomeData = async () => {
+    setError("");
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const loadServices = async () => {
+        try {
+          const res = await fetch(`${store.backendUrl}/api/services`);
+          const data = await res.json();
+          setServices(data.data || []);
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message || "No se pudo cancelar.");
-        return;
-      }
-      await loadAppointments();
-    } catch {
-      setError("Error de red cancelando la cita.");
+        } catch (e) {
+          console.log("error", e);
+        }
+      };
+      await loadServices();
+
+      const loadBarbers = async () => {
+        try {
+          const res = await fetch(`${store.backendUrl}/api/barbers`, {
+            headers: { Authorization: `Bearer ${store.token}` }
+          });
+          const data = await res.json();
+          setBarbers(data.data || []);
+        } catch (e) {
+          console.log("error", e);
+        }
+      };
+      await loadBarbers();
+    } catch (e) {
+      console.log("error", e);
+      setError("No se pudo cargar la información.");
+      setServices([]);
+      setBarbers([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- Acciones (barbero/admin) ---
+  useEffect(() => {
+    if (store.token) navigate("/dashboard")
+    loadHomeData();
+  }, []);
+
+
+
+
+  useEffect(() => {
+    if (token && role) loadAppointments();
+  }, [token, role]);
+
+  const cancelAppointment = async (appointment_id) => {
+    console.log("appointment_id", appointment_id)
+    const url = `${store.backendUrl}/api/appointments/${appointment_id}/delete`;
+    console.log("url", url)
+
+    try {
+      setLoading(true);
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "No se pudo cancelar.");
+        return;
+      }
+      if (res.ok) console.log("no me llego res.ok")
+      await loadAppointments();
+    } catch (e) {
+      setError("Error de red cancelando la cita.");
+      //console.error("Fetch error details:", e.message, e.name, e.stack);      
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const modificarAppointment = async (appointment_id) => {
+    const url = `${store.backendUrl}/api/appointments/${appointment_id}/modificar`;
+    try {
+      setLoading(true);
+      const res = await fetch(url, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "confirmada"
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "No se pudo confirmar.");
+        return;
+      }
+      if (res.ok) console.log("no me llego res.ok")
+      await loadAppointments();
+    } catch (e) {
+      setError("Error de red confirmando la cita...");
+      //console.error("Fetch error details:", e.message, e.name, e.stack);      
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const initials = (name = "") => {
+    const parts = name.trim().split(" ").filter(Boolean);
+    const a = parts[0]?.[0] || "B";
+    const b = parts[1]?.[0] || "";
+    return (a + b).toUpperCase();
+  };
+
+  const BarberAvatar = ({ barber }) => {
+    const url = barber?.photo_url;
+    if (url) {
+      return (
+        <img
+          src={url}
+          alt={barber.name}
+          className="rounded-circle border"
+          style={{ width: 56, height: 56, objectFit: "cover" }}
+        />
+      );
+    }
+
+    return (
+      <div
+        className="rounded-circle border d-flex align-items-center justify-content-center fw-bold"
+        style={{ width: 56, height: 56, background: "#f1f3f5" }}
+        title="Sin foto"
+      >
+        {initials(barber?.name)}
+      </div>
+    );
+  };
+
+
+
   const confirmDisabledReason = "Acción pendiente (endpoint no implementado aún)";
 
-  const titleByRole = useMemo(() => {
-    if (role === "admin") return "Dashboard Admin";
-    if (role === "barbero") return "Dashboard Barbero";
-    return "Dashboard Cliente";
-  }, [role]);
 
   return (
+    <>
     <div className="container py-4">
-      {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-          <h1 className="h4 fw-bold mb-1">{titleByRole}</h1>
+          <h1 className="h4 fw-bold mb-1">Dashboard</h1>
           <div className="text-muted">
-            Rol: <span className="fw-semibold">{role || "—"}</span>
+            Acceso: <span className="fw-semibold">{store.role || "—"}</span>
           </div>
         </div>
 
         <div className="d-flex gap-2">
-          <Link to="/book" className="btn btn-dark">
+         {role === "barbero"
+           ? 
+          <Link to="/procesarpagos" className="btn btn-dark">
+            Procesar Pago
+          </Link>
+           :
+          <Link to="/bookappointment" className="btn btn-dark">
             Agendar cita
           </Link>
+         }
           <Link to="/logout" className="btn btn-outline-dark">
             Salir
           </Link>
@@ -115,7 +216,6 @@ export default function Dashboard() {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Quick stats */}
       <div className="row g-3 mb-3">
         <StatCard title="Total" value={appointments.length} />
         <StatCard
@@ -128,9 +228,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Table */}
       <div className="card border-0 shadow-sm">
-        <div className="card-body p-4">
+        <div className="card-body p-4 ">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <h2 className="h6 fw-bold mb-0">
               {role === "barbero" ? "Citas asignadas" : "Mis citas"}
@@ -214,8 +313,9 @@ export default function Dashboard() {
                             <>
                               <button
                                 className="btn btn-sm btn-outline-success"
-                                disabled
+                                disabled={loading || a.status === "cancelada" || a.status === "completada" || a.status === "confirmada"}
                                 title={confirmDisabledReason}
+                                onClick={() => modificarAppointment(a.appointment_id)}
                               >
                                 Confirmar
                               </button>
@@ -248,14 +348,84 @@ export default function Dashboard() {
                 </tbody>
               </table>
 
-              <div className="text-muted small mt-2">
-                * Si tu API devuelve campos con otros nombres, me dices el JSON exacto y lo adapto.
-              </div>
             </div>
           )}
         </div>
       </div>
+    
+      {role === "cliente" && 
+      <div className="card border-0 shadow-sm mt-5">
+        {barbers.length === 0 ? (
+          <div className="text-muted">No hay barberos disponibles.</div>
+        ) : (
+          <div className="d-grid gap-2 mt-5">
+            <h4 className="ps-4">Barberos</h4>
+            {barbers.map((b) => {
+              return (
+                <button
+                  key={b.user_id}
+                  type="button"
+                  className={`btn text-start p-3 border rounded-3 `}
+                >
+                  <div className="d-flex gap-3 align-items-center">
+                    <BarberAvatar barber={b} />
+                    <div className="flex-grow-1">
+                      <div className="fw-semibold">{b.name}</div>
+                      <div className="text-muted small">
+                        {b.specialties ? b.specialties : "Barbero profesional"}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      }
+      {role === "cliente" && 
+      <div className="card border-0 shadow-sm mt-5">
+        {services.length === 0 ? (
+          <div className="text-muted">No hay servicios.</div>
+        ) : (
+
+          <div className="table-responsive">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 className="h6 fw-bold mb-0 ps-2 mt-3">
+                {role === "barbero" ? "Citas asignadas" : "Servicios"}
+              </h2>
+            </div>
+            <table className="table align-middle">
+              <thead>
+                <tr >
+                  <th>Descripcion</th>
+                  <th>Precio</th>
+                  <th>Duracion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {services.map((a) => (
+                  <tr key={a.service_id}>
+                    <td>{a.name}</td>
+                    <td>{a.price}</td>
+
+                    <td>
+                      {a.duration_minutes}
+                    </td>
+
+
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+          </div>
+        )}
+      </div>
+}
+
     </div>
+  </>
   );
 }
 

@@ -6,7 +6,6 @@ export default function BookAppointment() {
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const { store, dispatch } = useGlobalReducer();
-  //const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -69,9 +68,8 @@ export default function BookAppointment() {
     return (a + b).toUpperCase();
   };
 
-  // Avatar placeholder (si no hay photo_url)
   const BarberAvatar = ({ barber }) => {
-    const url = barber?.photo_url; // si tu API lo agrega luego, ya funciona
+    const url = barber?.photo_url;
     if (url) {
       return (
         <img
@@ -94,13 +92,12 @@ export default function BookAppointment() {
     );
   };
 
-  // ---------- LOAD DATA ----------
   const loadServices = async () => {
     try {
       const res = await fetch(`${store.backendUrl}/api/services`);
       const data = await res.json();
       if (res.ok) dispatch({ type: "set_services", payload: data.data || [] });
-    } catch {}
+    } catch { }
   };
 
   const loadBarbers = async () => {
@@ -111,26 +108,22 @@ export default function BookAppointment() {
       });
       const data = await res.json();
       if (res.ok) dispatch({ type: "set_barbers", payload: data.data || [] });
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
     loadServices();
-    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
     if (!store.token) return;
     loadBarbers();
-    // eslint-disable-next-line
   }, [store.token]);
 
-  // ---------- ACTIONS ----------
   const selectBarber = (barberId) => {
     setForm(prev => ({
       ...prev,
       barber_id: barberId,
-      // al cambiar barbero, resetea segmento/hora para evitar inconsistencias
       segment: "",
       time: ""
     }));
@@ -170,16 +163,15 @@ export default function BookAppointment() {
 
       setMsg({ type: "success", text: "¡Cita creada! Quedó en estado pendiente." });
 
-      // refresca mis citas
       try {
         const r2 = await fetch(`${store.backendUrl}/api/appointments/mine`, {
           headers: { Authorization: `Bearer ${store.token}` }
         });
         const d2 = await r2.json();
         if (r2.ok) dispatch({ type: "set_my_appointments", payload: d2.data || [] });
-      } catch {}
+      } catch { }
 
-      setTimeout(() => navigate("/appointments"), 900);
+      setTimeout(() => navigate("/dashboard"), 900);
     } catch {
       setMsg({ type: "danger", text: "Error de red." });
     } finally {
@@ -187,7 +179,6 @@ export default function BookAppointment() {
     }
   };
 
-  // ---------- UI ----------
   return (
     <div className="container py-4">
       <div className="mb-4">
@@ -196,7 +187,6 @@ export default function BookAppointment() {
       </div>
 
       <div className="row g-3">
-        {/* LEFT: Barbers list */}
         <div className="col-12 col-lg-5">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
@@ -241,7 +231,6 @@ export default function BookAppointment() {
           </div>
         </div>
 
-        {/* RIGHT: Form */}
         <div className="col-12 col-lg-7">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
@@ -257,7 +246,7 @@ export default function BookAppointment() {
                       setForm(prev => ({
                         ...prev,
                         service_id: e.target.value,
-                        // si cambia servicio, recalculamos slots => resetea hora
+                        // si cambio servicio, recalculo slots => resetea hora
                         time: ""
                       }))
                     }
@@ -324,7 +313,6 @@ export default function BookAppointment() {
                   )}
                 </div>
 
-                {/* Slots */}
                 <div className="col-12">
                   <label className="form-label">Horarios disponibles</label>
 
@@ -386,17 +374,6 @@ export default function BookAppointment() {
                   </div>
                 )}
               </form>
-            </div>
-          </div>
-
-          {/* Tip box */}
-          <div className="card border-0 shadow-sm mt-3">
-            <div className="card-body p-4">
-              <div className="fw-bold mb-1">Nota</div>
-              <div className="text-muted small">
-                Por ahora los horarios son “genéricos” por segmento.
-                Luego, si quieres, podemos mejorarlo para leer disponibilidad real del barbero (availability) desde backend.
-              </div>
             </div>
           </div>
         </div>

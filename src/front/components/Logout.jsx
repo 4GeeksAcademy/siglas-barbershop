@@ -8,8 +8,11 @@ const Logout = () => {
 
   useEffect(() => {
     localStorage.removeItem("access_token")
+    localStorage.removeItem("role")
+    localStorage.removeItem("user_id")
+    localStorage.removeItem("is_admin")
     dispatch({ type: "logout" })
-    navigate("/login");
+    navigate("/");
   }, [navigate]);
 
   return (

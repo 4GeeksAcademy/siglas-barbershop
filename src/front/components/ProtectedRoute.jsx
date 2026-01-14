@@ -7,3 +7,5 @@ export default function ProtectedRoute({ children }) {
     if (!store.token) return <Navigate to="/login" replace />;
     return children;
 }
+
+//para usar esto para proteger rutas en el frontend

@@ -1,20 +1,21 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 
 const MyPerfilCliente = () => {
   const { store } = useGlobalReducer();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+  const [id, setId] = useState("");
 
   const [form, setForm] = useState({
     name: "",
     phone: "",
     address: "",
-    photo_url: "",
-    bio: "",
-    specialties: "",
+    email: "",
   });
 
   const showAlert = (type, message) => {
@@ -23,25 +24,23 @@ const MyPerfilCliente = () => {
   };
 
   const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
-  console.log("cono akika el token", store.token)
 
   useEffect(() => {
     (async () => {
       try {
-        // RECOMENDADO: /api/me
-        const data = await fetch(`${store.backendUrl}/api/me`, {
+        //const res = await fetch(`${backendUrl}/api/usuario/${id}`);
+
+        const data = await fetch(`${store.backendUrl}/api/miperfil/cliente`, {
           headers: { Authorization: `Bearer ${store.token}` }
-      } );
-    const res = await data.json()      
-     const u = res.user || res; // por si devuelves directo usuario
-     console.log("data",res.user)
+        });
+        const res = await data.json()
+        const u = res.user || res; // por si devuelves directo usuario
+        setId(u.user_id)
         setForm({
           name: u.name || "",
           phone: u.phone || "",
           address: u.address || "",
-          photo_url: u.photo_url || "",
-          bio: u.bio || "",
-          specialties: u.specialties || "",
+          email: u.email || "",
         });
       } catch (e) {
         showAlert("danger", e.message);
@@ -51,34 +50,31 @@ const MyPerfilCliente = () => {
     })();
   }, [store.backendUrl]);
 
-  const role = store.user?.role || store.role; // según cómo guardes
-  const isBarber = role === "barbero";
-
   const onSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      // cliente: no necesita specialties
       const payload = {
         name: form.name.trim(),
         phone: form.phone.trim() || null,
         address: form.address.trim() || null,
-        photo_url: form.photo_url.trim() || null,
-        bio: form.bio.trim() || null,
+        email: form.email,
       };
 
-      if (isBarber) payload.specialties = form.specialties.trim() || null;
-
-      await apiFetch(`${store.backendUrl}/api/me`, {
+      await fetch(`${store.backendUrl}/api/miperfil/${id}/modify`, {
         method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${store.token}`
+        },
         body: JSON.stringify(payload),
       });
-
       showAlert("success", "Perfil actualizado.");
     } catch (e) {
       showAlert("danger", e.message);
     } finally {
       setSaving(false);
+      navigate(-1)
     }
   };
 
@@ -100,6 +96,10 @@ const MyPerfilCliente = () => {
                   <label className="form-label">Nombre</label>
                   <input className="form-control" name="name" value={form.name} onChange={handleChange} />
                 </div>
+                <div className="col-md-12">
+                  <label className="form-label">Email</label>
+                  <input className="form-control" name="email" value={form.email} onChange={handleChange} />
+                </div>
 
                 <div className="col-md-6">
                   <label className="form-label">Teléfono</label>
@@ -111,30 +111,24 @@ const MyPerfilCliente = () => {
                   <input className="form-control" name="address" value={form.address} onChange={handleChange} />
                 </div>
 
-                {isBarber && (
-                  <div className="col-12">
-                    <label className="form-label">Especialidades</label>
-                    <input className="form-control" name="specialties" value={form.specialties} onChange={handleChange} placeholder="Fade, barba, diseño..." />
-                    <div className="form-text">Solo barberos.</div>
-                  </div>
-                )}
 
-                <div className="col-12">
-                  <label className="form-label">Foto (URL)</label>
-                  <input className="form-control" name="photo_url" value={form.photo_url} onChange={handleChange} placeholder="https://..." />
-                </div>
 
-                <div className="col-12">
-                  <label className="form-label">Bio</label>
-                  <textarea className="form-control" name="bio" rows="3" value={form.bio} onChange={handleChange} />
-                </div>
 
                 <div className="col-12 d-grid mt-2">
                   <button className="btn btn-dark" disabled={saving}>
                     {saving ? "Guardando..." : "Guardar cambios"}
                   </button>
                 </div>
-              </form>
+
+                <div className="col-12 text-center">
+                  <button
+                    type="button"
+                    className="btn btn-link text-muted"
+                    onClick={() => navigate("/dashboard")}
+                  >
+                    ← Volver
+                  </button>
+                </div>              </form>
 
             </div>
           </div>

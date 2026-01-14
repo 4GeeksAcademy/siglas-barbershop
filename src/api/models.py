@@ -12,7 +12,19 @@ STATUS_ENUM = Enum("pendiente", "confirmada", "cancelada",
                    "completada", name="status_enum", native_enum=False)
 
 
-# (Opcional) Tu modelo viejo. Puedes borrarlo luego si ya no lo usas.
+PAYMENT_METHOD_ENUM = Enum(
+    "efectivo", "tarjeta", "transferencia", "zelle", "otro",
+    name="payment_method_enum",
+    native_enum=False
+)
+
+PAYMENT_STATUS_ENUM = Enum(
+    "pendiente", "pagado", "anulado", "reembolsado",
+    name="payment_status_enum",
+    native_enum=False
+)
+
+# Borrar este modelo
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -27,23 +39,19 @@ class User(db.Model):
 
 class Usuario(db.Model):
     __tablename__ = "usuarios"
-
     user_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(
         String(120), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
-
     role: Mapped[str] = mapped_column(
         ROLE_ENUM, nullable=False, default="cliente")
     is_active: Mapped[bool] = mapped_column(
         Boolean(), nullable=False, default=True)
     is_admin: Mapped[bool] = mapped_column(
         Boolean(), nullable=True)
-
     phone: Mapped[Optional[str]] = mapped_column(String(25))
     address: Mapped[Optional[str]] = mapped_column(String(255))
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -77,15 +85,18 @@ class Usuario(db.Model):
             "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
+            "is_admin": bool(self.is_admin),   # <-- importante
             "phone": self.phone,
             "address": self.address,
+            "photo_url": self.photo_url,
+            "bio": self.bio,
+            "specialties": self.specialties,
             "created_at": self.created_at.isoformat()
         }
 
 
 class Service(db.Model):
     __tablename__ = "services"
-
     service_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
@@ -102,21 +113,17 @@ class Service(db.Model):
 
 class Appointment(db.Model):
     __tablename__ = "appointments"
-
     appointment_id: Mapped[int] = mapped_column(primary_key=True)
-
     client_id: Mapped[int] = mapped_column(
         ForeignKey("usuarios.user_id"), nullable=False)
     barber_id: Mapped[int] = mapped_column(
         ForeignKey("usuarios.user_id"), nullable=False)
     service_id: Mapped[int] = mapped_column(
         ForeignKey("services.service_id"), nullable=False)
-
     appointment_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(
         STATUS_ENUM, nullable=False, default="pendiente")
-
     notes: Mapped[Optional[str]] = mapped_column(db.Text)
 
     client: Mapped["Usuario"] = relationship(
@@ -139,5 +146,55 @@ class Appointment(db.Model):
             "service": self.service.serialize(),
             "appointment_date": self.appointment_date.isoformat(),
             "status": self.status,
+            "notes": self.notes
+        }
+
+class Payment(db.Model):
+    __tablename__ = "payments"
+
+    payment_id: Mapped[int] = mapped_column(primary_key=True)
+
+    appointment_id: Mapped[int] = mapped_column(
+        ForeignKey("appointments.appointment_id"),
+        nullable=False
+    )
+
+    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+
+    method: Mapped[str] = mapped_column(
+        PAYMENT_METHOD_ENUM, nullable=False, default="efectivo"
+    )
+
+    status: Mapped[str] = mapped_column(
+        PAYMENT_STATUS_ENUM, nullable=False, default="pagado"
+    )
+
+    paid_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
+    )
+
+    # usuario que cobró: admin o barbero
+    created_by_user_id: Mapped[int] = mapped_column(
+        ForeignKey("usuarios.user_id"),
+        nullable=False
+    )
+
+    notes: Mapped[Optional[str]] = mapped_column(db.Text, nullable=True)
+
+    appointment: Mapped["Appointment"] = relationship("Appointment")
+    created_by: Mapped["Usuario"] = relationship("Usuario")
+
+    def serialize(self):
+        return {
+            "payment_id": self.payment_id,
+            "appointment_id": self.appointment_id,
+            "amount": float(self.amount),
+            "method": self.method,
+            "status": self.status,
+            "paid_at": self.paid_at.isoformat() if self.paid_at else None,
+            "created_by_user_id": self.created_by_user_id,
+            "created_by_name": self.created_by.name if self.created_by else None,
             "notes": self.notes
         }

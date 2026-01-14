@@ -1,9 +1,12 @@
 /* Fondo global con patrón */
 .app-background1 {
   min-height: 100vh;
-  background-image: url("/fondonuevo.jpg");
-  background-repeat: repeat; /* IMPORTANTE para patrones */
+  /* Fondo de color semitransparente */
+  background-color: rgba(0, 0, 0, 0.1); /* Negro con 20% de opacidad */
+  background-image: url(/fondonuevo.jpg);
+  background-repeat: repeat;
   background-size: auto;
+  opacity: 0.9;
 }
 
 /* Overlay suave para legibilidad */
@@ -14,6 +17,14 @@
   background: rgba(255, 255, 255, 0.85);
   z-index: -1;
 }
-body{
+body {
   background: gray;
+}
+.app-background1 {
+  min-height: 100vh;
+  /* Fondo de color semitransparente */
+  background-color: rgba(0, 0, 0, 0.2); /* Negro con 20% de opacidad */
+  background-image: url(/fondonuevo.jpg);
+  background-repeat: repeat;
+  background-size: auto;
 }
