@@ -80,8 +80,7 @@ export default function AdminDashboard() {
                 const data = await res.json();
                 if (res.ok && data.ok) setSalesToday(data.data);
             } catch (e) {
-                console.log("verificar el error", e, e.message)
-                // no bloquea el dashboard
+                // no bloquea el dashboard corregir esto
             }
 
             // 3) recent payments
@@ -92,7 +91,7 @@ export default function AdminDashboard() {
                 const data = await res.json();
                 if (res.ok && data.ok) setRecentPayments(data.data || []);
             } catch {
-                // no bloquea
+                // no bloquea corregir esto
             }
         } finally {
             setLoading(false);
@@ -101,7 +100,6 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (token && isAdmin) loadAll();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, isAdmin]);
 
     const stats = useMemo(() => {
@@ -149,7 +147,7 @@ export default function AdminDashboard() {
 
             {error && <div className="alert alert-danger">{error}</div>}
 
-            {/* KPIs */}
+            {/* */}
             <div className="row g-3 mb-3">
                 <StatCard title="Total reservas" value={stats.total} />
                 <StatCard title="Ventas hoy" value={`$ ${Number(salesToday.total || 0).toFixed(2)}`} />
@@ -258,6 +256,10 @@ export default function AdminDashboard() {
                                 <Link className="btn btn-sm btn-outline-dark" to="/admin/payments">
                                     Ver todos los pagos
                                 </Link>
+                                <Link to="/cliente/pagar" className="btn btn-outline-dark">
+                                    Pagar servicios
+                                </Link>
+
                             </div>
                         </div>
                     </div>
@@ -267,7 +269,7 @@ export default function AdminDashboard() {
     );
 }
 
-/* --- UI helpers --- */
+/* --- --- */
 function StatCard({ title, value }) {
     return (
         <div className="col-12 col-md-4">

@@ -27,7 +27,7 @@ export default function BookAppointment() {
   };
   const toHHMM = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
 
-  // Segmentos (puedes ajustarlos)
+  // Segmentos
   const SEGMENTS = {
     morning: { label: "Mañana", start: "09:00", end: "12:00" },
     afternoon: { label: "Tarde", start: "13:00", end: "17:00" },
@@ -42,7 +42,6 @@ export default function BookAppointment() {
 
   const isoString = useMemo(() => {
     if (!form.date || !form.time) return "";
-    // ISO local sin offset (tu backend lo suele aceptar)
     return `${form.date}T${form.time}:00`;
   }, [form.date, form.time]);
 
@@ -161,7 +160,7 @@ export default function BookAppointment() {
         return;
       }
 
-      setMsg({ type: "success", text: "¡Cita creada! Quedó en estado pendiente." });
+      setMsg({ type: "success", text: "¡Cita creada! Queda en estado pendiente." });
 
       try {
         const r2 = await fetch(`${store.backendUrl}/api/appointments/mine`, {
@@ -223,10 +222,6 @@ export default function BookAppointment() {
                   })}
                 </div>
               )}
-
-              <div className="text-muted small mt-3">
-                * Si luego agregas <code>photo_url</code> en tu API, aquí se mostrarán las fotos reales.
-              </div>
             </div>
           </div>
         </div>

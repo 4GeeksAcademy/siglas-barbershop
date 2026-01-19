@@ -44,8 +44,6 @@ const AdminEditarServicio = () => {
 
   const loadServicio = async () => {
     try {
-      // No tienes GET /services/<id> en tu backend.
-      // Entonces: cargamos todos y buscamos el que coincide.
       const res = await fetch(`${backendUrl}/api/services`);
       const data = await res.json();
 

@@ -5,11 +5,18 @@ import {
   createRoutesFromElements,
   Route,
 } from "react-router-dom";
+
+/* import {
+  createHashRouter,
+  createRoutesFromElements,
+  Route,
+} from "react-router-dom"; */
+
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import Registrarse from "./components/Registrarse";
 import Login from "./components/Login";
-import ListUsers from "./components/ListUsers";
+//import ListUsers from "./components/ListUsers";
 import Logout from "./components/Logout";
 import Dashboard from "./pages/Dashboard";
 import BookAppointment from "./pages/BookAppointment";
@@ -22,7 +29,13 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminServicios from "./pages/AdminServicios";
 import AdminCrearServicio from "./pages/AdminCrearServicio";
 import AdminEditarServicio from "./pages/AdminEditarServicio";
+import PagoExitoso from "./pages/PagoExitoso";
+import PagoCancelado from "./pages/PagoCancelado";
 
+import ClientePagarServicios from "./pages/ClientePagarServicios";
+import MisPagos from "./pages/MisPagos";
+
+//export const router = createHashRouter(
 export const router = createBrowserRouter(
   createRoutesFromElements(
     // CreateRoutesFromElements function allows you to build route elements declaratively.
@@ -39,7 +52,7 @@ export const router = createBrowserRouter(
       <Route path="/registrarse" element={<Registrarse />} />
       <Route path="/login" element={<Login />} />
       <Route path="/logout" element={<Logout />} />
-      <Route path="/usuarios" element={<ListUsers />} />
+      {/*<Route path="/usuarios" element={<ListUsers />} /> */}
       <Route path="/admin/usuarios" element={< AdminCreateUser />} />
       <Route path="/adminusuarios" element={< AdminUsuarios />} />
       <Route path="/admin/usuarios/:id" element={< AdminEditarUsuario />} />
@@ -53,6 +66,13 @@ export const router = createBrowserRouter(
       <Route path="/adminservicios" element={<AdminServicios />} />
       <Route path="/admin/servicios" element={<AdminCrearServicio />} />  
       <Route path="/admin/servicios/:id" element={<AdminEditarServicio />} />
+
+      <Route path="/pago-exitoso" element={< PagoExitoso />} />
+      <Route path="/pago-cancelado" element={< PagoCancelado />} />
+
+      <Route path="/cliente/pagar" element={<ClientePagarServicios />} />
+
+      <Route path="/mis-pagos" element={< MisPagos />} />
 
     </Route>
   )

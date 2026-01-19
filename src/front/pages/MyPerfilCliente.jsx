@@ -28,7 +28,6 @@ const MyPerfilCliente = () => {
   useEffect(() => {
     (async () => {
       try {
-        //const res = await fetch(`${backendUrl}/api/usuario/${id}`);
 
         const data = await fetch(`${store.backendUrl}/api/miperfil/cliente`, {
           headers: { Authorization: `Bearer ${store.token}` }

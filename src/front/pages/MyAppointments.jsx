@@ -149,9 +149,7 @@ export default function MyAppointments() {
                           </button>
                         </div>
 
-                        <div className="text-muted small mt-1">
-                          * Si tu rol no tiene permiso, el backend responderá “No autorizado”.
-                        </div>
+ 
                       </td>
                     </tr>
                   ))

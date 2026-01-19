@@ -1,9 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Enum, Numeric
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Enum, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
 from typing import List, Optional
-
 db = SQLAlchemy()
 
 ROLE_ENUM = Enum("cliente", "barbero", "admin",
@@ -13,18 +12,20 @@ STATUS_ENUM = Enum("pendiente", "confirmada", "cancelada",
 
 
 PAYMENT_METHOD_ENUM = Enum(
-    "efectivo", "tarjeta", "transferencia", "zelle", "otro",
+    "efectivo", "tarjeta", "transferencia", "zelle", "otro", "stripe",
     name="payment_method_enum",
     native_enum=False
 )
 
 PAYMENT_STATUS_ENUM = Enum(
-    "pendiente", "pagado", "anulado", "reembolsado",
+    "pendiente", "pagado", "anulado", "reembolsado", "fallido",
     name="payment_status_enum",
     native_enum=False
 )
 
 # Borrar este modelo
+
+
 class User(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -149,42 +150,64 @@ class Appointment(db.Model):
             "notes": self.notes
         }
 
+
 class Payment(db.Model):
     __tablename__ = "payments"
-
-    payment_id: Mapped[int] = mapped_column(primary_key=True)
-
-    appointment_id: Mapped[int] = mapped_column(
-        ForeignKey("appointments.appointment_id"),
-        nullable=False
+    __table_args__ = (
+        UniqueConstraint("stripe_session_id",
+                         name="uq_payments_stripe_session_id"),
     )
+    payment_id: Mapped[int] = mapped_column(primary_key=True)
+    # permitir pagos SIN cita
+    appointment_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("appointments.appointment_id",
+                   name="fk_payments_appointment_id"),
+        nullable=True
+    )
+    #  quién pagó (cliente) ojo analizar bien esto
 
+    payer_user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey(
+            "usuarios.user_id",
+            name="fk_payments_payer_user_id"
+        ),
+        nullable=True
+    )
     amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-
     method: Mapped[str] = mapped_column(
         PAYMENT_METHOD_ENUM, nullable=False, default="efectivo"
     )
-
     status: Mapped[str] = mapped_column(
-        PAYMENT_STATUS_ENUM, nullable=False, default="pagado"
+        PAYMENT_STATUS_ENUM, nullable=False, default="pagado"  # pendiente chap
     )
-
     paid_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False
     )
-
     # usuario que cobró: admin o barbero
     created_by_user_id: Mapped[int] = mapped_column(
-        ForeignKey("usuarios.user_id"),
+        ForeignKey("usuarios.user_id", name="fk_payments_created_by_user_id"),
         nullable=False
     )
-
     notes: Mapped[Optional[str]] = mapped_column(db.Text, nullable=True)
+#  ANTI-DUPLICADOS: guardamos session.id de Stripe (único)
+    stripe_session_id: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True
+    )
+    # Opcional (si quieres trazabilidad extra):
+    # stripe_payment_intent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    appointment: Mapped["Appointment"] = relationship("Appointment")
-    created_by: Mapped["Usuario"] = relationship("Usuario")
+    # appointment: Mapped["Appointment"] = relationship("Appointment")
+    # appointment: Mapped[Optional["Appointment"]] = relationship("Appointment", backref="payments")
+    # created_by: Mapped["Usuario"] = relationship("Usuario")
+
+    appointment: Mapped[Optional["Appointment"]] = relationship("Appointment")
+    payer: Mapped[Optional["Usuario"]] = relationship(
+        "Usuario", foreign_keys=[payer_user_id])
+    created_by: Mapped["Usuario"] = relationship(
+        "Usuario", foreign_keys=[created_by_user_id])
 
     def serialize(self):
         return {

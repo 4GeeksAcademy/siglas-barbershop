@@ -22,6 +22,7 @@ flask = "*"
 flask-jwt-extended = "*"
 flask-bcrypt = "*"
 python-dateutil = "*"
+stripe = "*"
 
 [requires]
 python_version = "3.13"

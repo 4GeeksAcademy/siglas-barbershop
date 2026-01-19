@@ -149,6 +149,38 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+async function pagarCita(appointment_id) {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/stripe/checkout/appointment/${appointment_id}`, {
+    method: "POST"
+  });
+  const data = await res.json();
+  if (data.ok) window.location.href = data.checkout_url;
+}
+
+
+async function completarYCobrar(appointmentId) {
+  const token = localStorage.getItem("access_token");
+
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/appointments/${appointmentId}/complete-and-pay`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  const data = await res.json();
+  if (data.ok) window.location.href = data.checkout_url;
+}
+
+
+async function pagarServicioDirecto(service_id) {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/stripe/checkout/direct`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ service_id })
+  });
+  const data = await res.json();
+  if (data.ok) window.location.href = data.checkout_url;
+}
+
 
   const initials = (name = "") => {
     const parts = name.trim().split(" ").filter(Boolean);
@@ -322,32 +354,25 @@ export default function Dashboard() {
 
                               <button
                                 className="btn btn-sm btn-outline-secondary"
-                                disabled
                                 title="Endpoint pendiente"
+                                onClick={() => completarYCobrar(a.appointment_id)}
                               >
                                 Completar
                               </button>
+
                             </>
                           )}
 
-                          {/* ADMIN */}
-                          {role === "admin" && (
-                            <>
-                              <Link to="/admin/users" className="btn btn-sm btn-outline-dark">
-                                Usuarios
-                              </Link>
-                              <Link to="/admin/services" className="btn btn-sm btn-outline-dark">
-                                Servicios
-                              </Link>
-                            </>
-                          )}
+ 
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-
+<Link to="/mis-pagos" className="btn btn-outline-dark">
+  Mis pagos
+</Link>
             </div>
           )}
         </div>
